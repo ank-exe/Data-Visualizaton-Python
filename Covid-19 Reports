@@ -1,0 +1,62 @@
+# Step 1: Install necessary libraries
+!pip install plotly ipywidgets --quiet
+
+# Step 2: Import libraries
+import pandas as pd
+import plotly.express as px
+import ipywidgets as widgets
+from IPython.display import display
+
+# Step 3: Load COVID-19 data from Our World in Data
+url = "https://covid.ourworldindata.org/data/owid-covid-data.csv"
+covid = pd.read_csv(url)
+
+# Step 4: Prepare data
+covid_filtered = covid[['location', 'date', 'total_cases', 'new_cases', 'total_deaths', 'new_deaths']].copy()
+covid_filtered['date'] = pd.to_datetime(covid_filtered['date'])
+
+# List of unique countries/locations for dropdown
+countries = sorted(covid_filtered['location'].unique())
+
+# Step 5: Plot global total COVID-19 cases over time
+fig_global = px.line(
+    covid_filtered.groupby('date')['total_cases'].sum().reset_index(),
+    x='date',
+    y='total_cases',
+    title='Global Total COVID-19 Cases Over Time',
+    labels={'date': 'Date', 'total_cases': 'Total Cases'}
+)
+fig_global.show()
+
+# Step 6: Interactive country-specific daily new cases plot
+
+# Create dropdown widget for country selection
+country_dropdown = widgets.Dropdown(
+    options=countries,
+    value='India',
+    description='Country:',
+    disabled=False,
+)
+
+def plot_country_cases(country):
+    df = covid_filtered[covid_filtered['location'] == country]
+    fig = px.line(
+        df,
+        x='date',
+        y='new_cases',
+        title=f'Daily New COVID-19 Cases in {country}',
+        labels={'date': 'Date', 'new_cases': 'New Cases'},
+        height=400
+    )
+    fig.show()
+
+# Initial plot for default country
+plot_country_cases('India')
+
+# Update plot when dropdown value changes
+def on_change(change):
+    if change['type'] == 'change' and change['name'] == 'value':
+        plot_country_cases(change['new'])
+
+country_dropdown.observe(on_change)
+display(country_dropdown)
